@@ -26,11 +26,14 @@ A bounded context is a part of the system that has a clear responsibility and ow
 
 For each bounded context you identify, fill in the table:
 
-| Bounded Context | Responsibilities                                         | Owned Entities | Team        |
-| --------------- | -------------------------------------------------------- | -------------- | ----------- |
-| Identity        | Manages who users are, handles registration and profiles | User, Session  | Platform    |
-| Game Library    | _(fill in)_                                              | _(fill in)_    | _(fill in)_ |
-| _(add more)_    |                                                          |                |             |
+| Bounded Context  | Responsibilities                                                  | Owned Entities             | Team         |
+| ---------------- | ----------------------------------------------------------------- | -------------------------- | ------------ |
+| Identity         | Manages who users are, handles registration and profiles          | User, Session              | Platform     |
+| Game Library     | Maintains the game catalogue, search, and cached game summaries   | Game                       | Catalogue    |
+| Activity Tracking| Records user actions against games (played, completed, etc.)      | Activity                   | Engagement   |
+| Notifications    | Delivers in-app notifications to users from async events          | Notification               | Engagement   |
+| Authentication   | Issues and validates JWT tokens; no user data owned here          | Token                      | Platform     |
+| Compliance       | Stores GDPR consent decisions and structured activity log entries | ConsentRecord, ActivityLog | Legal        |
 
 There is no single correct answer: what matters is that you can justify each row.
 
@@ -56,6 +59,35 @@ Payload: { activity_id, user_id, action, game_id, timestamp }
 
 Focus on the flows that feel non-obvious. You do not need to document every possible pair.
 
+```
+activity-service → logging-service
+Trigger: a user action is recorded
+Protocol: RabbitMQ message (async) — logging must not block or fail the user's request
+Payload: { activity_id, user_id, action, game_id, timestamp }
+```
+
+```
+activity-service → notification-service
+Trigger: a user action is recorded
+Protocol: RabbitMQ message (async) — same event fan-out as above; notification delivery is not time-critical
+Payload: { user_id, action, game_id, timestamp }
+```
+
+```
+activity-service → game-service
+Trigger: POST /v1/activities — need game details to enrich the response
+Protocol: REST (sync, httpx) — caller needs the data immediately to return it; if game-service is down, return activity with game: null
+Payload request: GET /v1/games/{game_id}
+Payload response: { id, title, genre, platform, cover_url }
+```
+
+```
+gateway → auth-service
+Trigger: every authenticated inbound request
+Protocol: REST (sync) — token must be validated before the request is forwarded
+Payload: Authorization: Bearer <token> → { sub, role, exp }
+```
+
 ---
 
 ## Task 3 — Draw the service map _(~20 min)_
@@ -68,6 +100,34 @@ Draw the full GameHub service map:
 - One box at the top labelled **gateway** — all client requests enter here, no client ever calls a service directly
 
 This can be a sketch on paper, a whiteboard photo, or ASCII art committed to your branch.
+
+```
+                        +-------------------+
+                        |      gateway      |  :8000
+                        +---------+---------+
+                                  |
+          --------------------------------------------------------
+          |              |              |              |
+          v              v              v              v
+  +-------------+  +-----------+  +-----------+  +-----------+
+  | auth-service|  |user-service|  |game-service|<-| activity  |
+  |    :8005    |  |   :8001   |  |   :8002   |  |  service  |
+  +-------------+  +-----------+  | + Redis   |  |   :8003   |
+                                   +-----------+  +-----+-----+
+                                                        |
+                                                 * * * *+* * * *
+                                                 *               *
+                                                 v               v
+                                          +-----------+   +-----------+
+                                          |notif-serv.|   |logging-svc|
+                                          |   :8004   |   |   :8006   |
+                                          | (Node.js) |   |  (Flask)  |
+                                          +-----------+   +-----------+
+
+Legend:
+------> REST (sync)
+* * *-> RabbitMQ event (async)
+```
 
 ---
 
@@ -85,9 +145,9 @@ You do not need to write these answers down — they are warm-up for your REFLEC
 
 ## Minimum to submit this branch
 
-- [ ] Bounded context table filled in (at least 4 services justified)
-- [ ] At least 3 service contracts defined
-- [ ] Service map committed (sketch, photo, or ASCII)
-- [ ] `REFLECTION.md` completed and committed
+- [X] Bounded context table filled in (at least 4 services justified)
+- [X] At least 3 service contracts defined
+- [X] Service map committed (sketch, photo, or ASCII)
+- [X] `REFLECTION.md` completed and committed
 
 The map does not need to be perfect. It needs to be yours.

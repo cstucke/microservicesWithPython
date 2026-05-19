@@ -22,7 +22,9 @@ You started from a painful monolith. Now you're splitting it into separate servi
 
 Think about it from three angles: the developer who has to change code, the team that has to deploy it, and the user who has to live with its failures. You don't need to cover all three, pick the one that felt most real to you today.
 
-> _Your answer:_
+```
+In a monolithic architecture, everything is built in one application / development space. So, for instance, if a bug in notifications were to happen, the entire application would crash. By splitting the services, we can reduce the exposure (surface area) for failure. It also allows you to develop each part separately, without concern for the other parts: Separation of Duties.
+```
 
 ---
 
@@ -34,7 +36,9 @@ Look at your service map. Every arrow between two services is a decision someone
 
 What would break, slow down, or become harder to manage if you merged those two services back together?
 
-> _Your answer:_
+```
+The activity service sends async events to both the notification and logging services. This is because the current activity and logs must be updated with every activity. Likewise, the activity service makes a call to the game service. This is where one boundary exists: the games must remain its own source of truth, unalterable by the other services. For this reason, I've separated and made a distinct REST API for the game service.
+```
 
 ---
 
@@ -46,7 +50,9 @@ Microservices solve the monolith's problems. But they create new ones.
 
 No need to solve it: just name it honestly. This is exactly the tension the rest of the course is about.
 
-> _Your answer:_
+```
+One of the biggest issues that I've noticed when working with monolithic vs distributed designs in the past is that following an error is much harder. This is because the failure isn't from one central fault, you have to track it through several different layers.
+```
 
 ---
 
