@@ -20,6 +20,8 @@ Think about what the client would need to know and manage if it talked to each s
 
 > *Your answer:*
 
+The single entry point serves a massive role for all audiences, not just the client's QoL (like my use of industry lingo? ;P). It abstracts the confusing architecture of the interworkings of the microservices into one central place. If the client needed to know and manage everything itself, it would be impossible. Creating an abstraction layer like the gateway is also great for scaling: we already have the system set up, adding another microservice will be easier than managing it in some decentralized manner (albeit, i guess it never gets extremely easy adding a feature like that).
+
 ---
 
 ## 2. Your choice
@@ -32,6 +34,8 @@ What is the consequence for the user in each case if the downstream service is u
 
 > *Your answer:*
 
+Validating the user and fetching game data are two very different tasks. If we, for instance, tried to save data for a user that doesn't exist through the activity service, that would create a big issue in our data integrity (smth we learned the value of in GDPR). However, in the case of some external error/factor, we allow a retry. For the game data fetch, failing silently is completely reasonable. This is not critical for our data integrity, or any other functionality's integrity., so we can fail gracefully (as you put it).
+
 ---
 
 ## 3. The tradeoff
@@ -43,6 +47,8 @@ Every time a client creates an activity, three services are involved synchronous
 What happens to the user experience if the slowest service in the chain takes 3 seconds to respond?
 
 > *Your answer:*
+
+Synchronizing (? on spelling) the calls is good for the purpose of simplifying and centralizing our activities. However, it does carry one major risk: to access any of these calls, we must wait for all of the calls to be complete. Like in your example, if the slowest service in the chain takes 3 seconds to respond, then all of the other calls chained to it will also suffer from that additional 3 second delay.
 
 ---
 
