@@ -1,39 +1,38 @@
-# Infrastructure layer — raw database queries.
+# Interface layer — HTTP endpoints.
 #
-# Functions here take a SQLAlchemy Session and return ORM objects.
-# This is the only layer allowed to write SQL / ORM queries.
+# This file defines the FastAPI router and maps HTTP verbs + paths to
+# service function calls. It is the only layer that knows about HTTP.
 #
 # Rules:
-# - No HTTP knowledge here (no Request, no HTTPException)
-# - No business rules here (no password hashing, no validation logic)
-# - Every function receives `db: Session` as its first argument
+# - Never call repository functions directly — always go through service
+# - Catch ValueError from the service layer and raise HTTPException instead
+# - Use Depends(get_db) to inject the database session
 #
-# This file should implement:
-# - create_user(db, data, hashed_password) -> User
-# - get_user(db, user_id) -> User | None
-# - list_users(db, limit, offset) -> tuple[list[User], int]
+# This file should expose:
+# - POST   /v1/users/          -> create a user
+# - GET    /v1/users/          -> list users (with limit/offset pagination)
+# - GET    /v1/users/{user_id} -> get one user by ID (404 if not found)
 #
 # See the README for the full implementation.
 
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.models import User
-from app.schemas import UserCreate
+from app.database import get_db
+from app import service, schemas
 
-def create_user(db: Session, data: UserCreate, hashed_password: str) -> User:
-    user = User(
-        username=data.username,
-        email=data.email,
-        hashed_password=hashed_password,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
+router = APIRouter(prefix="/v1/users", tags=["users"])
 
-def get_user(db: Session, user_id: str) -> User | None:
-    return db.query(User).filter(User.id == user_id).first()
+@router.post("/", response_model=schemas.UserOut, status_code=201)
+def create_user(data: schemas.UserCreate, db: Session = Depends(get_db)):
+    return service.add_user(db, data)
 
-def list_users(db: Session, limit: int = 20, offset: int = 0) -> tuple[list[User], int]:
-    total = db.query(User).count()
-    users = db.query(User).offset(offset).limit(limit).all()
-    return users, total
+@router.get("/", response_model=schemas.UserList)
+def list_users(limit: int = 20, offset: int = 0, db: Session = Depends(get_db)):
+    return service.fetch_all_users(db, limit=limit, offset=offset)
+
+@router.get("/{user_id}", response_model=schemas.UserOut)
+def get_user(user_id: str, db: Session = Depends(get_db)):
+    try:
+        return service.fetch_user(db, user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))

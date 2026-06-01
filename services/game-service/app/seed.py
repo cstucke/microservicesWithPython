@@ -1,48 +1,39 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
 
-from app.config import settings
+from app.database import SessionLocal, engine
+from app.models import Base, Game
 
-bearer_scheme = HTTPBearer()
+GAMES = [
+    {"title": "The Witcher 3: Wild Hunt", "genre": "RPG",          "platform": "PC",     "release_year": 2015, "cover_url": None},
+    {"title": "Hollow Knight",            "genre": "Metroidvania", "platform": "PC",     "release_year": 2017, "cover_url": None},
+    {"title": "Celeste",                  "genre": "Platformer",   "platform": "Switch", "release_year": 2018, "cover_url": None},
+    {"title": "Elden Ring",               "genre": "Soulslike",    "platform": "PS5",    "release_year": 2022, "cover_url": None},
+    {"title": "Stardew Valley",           "genre": "Simulation",   "platform": "PC",     "release_year": 2016, "cover_url": None},
+]
 
-
-async def require_admin(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-) -> dict:
-    """
-    FastAPI dependency — verifies the JWT and asserts the caller has the admin role.
-
-    Usage in main.py:
-        from app.security import require_admin
-
-        @app.delete("/v1/games/{game_id}", dependencies=[Depends(require_admin)])
-        async def delete_game(game_id: str, ...):
-            ...
-
-    Returns the decoded token payload if valid and role == "admin".
-    Raises 403 if the token is valid but the role is not admin.
-    Raises 401 if the token is missing, expired, or tampered with.
-
-    Note: 401 means "I don't know who you are".
-          403 means "I know who you are, but you can't do this".
-    """
-    try:
-        payload = jwt.decode(
-            credentials.credentials,
-            settings.auth_secret_key,
-            algorithms=["HS256"],
+def run():
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    imported = 0
+    for data in GAMES:
+        existing = db.query(Game).filter(Game.title == data["title"]).first()
+        if existing:
+            continue
+        game = Game(
+            title=data["title"],
+            genre=data["genre"],
+            platform=data["platform"],
+            release_year=data["release_year"],
+            cover_url=data["cover_url"],
         )
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-        )
+        db.add(game)
+        imported += 1
 
-    if payload.get("role") != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin role required",
-        )
+    db.commit()
+    db.close()
+    print(f"Imported {imported} games.")
 
-    return payload
+if __name__ == "__main__":
+    run()
