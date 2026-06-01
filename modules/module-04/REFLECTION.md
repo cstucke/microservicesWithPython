@@ -18,7 +18,7 @@ In Module 3, services called each other directly over HTTP. Now activity-service
 
 Think about what happens under load, or when notification-service is temporarily down.
 
-> *Your answer:*
+> Due to the fact that activity-service no longer waits for notification-service to respond, activity service can finish its tasks quicker. The practical point of this is that we are decoupling these two activities: now, if a large number of activities are logged, activity service will not have to wait for notification service and can process them on its own. By creating a queue for the activities, even if notification service becomes temporarily unavailable, it will be able to start at the same spot and have access to the unfinished jobs through the queue. It's good for both services!
 
 ---
 
@@ -30,7 +30,7 @@ In Module 3 you already knew how to call another service directly over HTTP — 
 
 Think about what happens if notification-service is slow, or crashes mid-message.
 
-> *Your answer:*
+> I guess I inadvertedly answered this in the previous question: by implementing a broker, even if notification service goes completely down, the activity linked to the notification is still saved in queue and, when the service becomes available again, the notification service can process the activity. If we were using the same approach (HTTP that is) for notifications, the activity request would fail if the notification service isn't available.
 
 ---
 
@@ -42,7 +42,7 @@ With synchronous REST, you get an immediate answer: success or failure. With asy
 
 What visibility do you lose when you go async?
 
-> *Your answer:*
+> The user doesn't have access to the async messaging system, so the user would not be able to see anything about the notification. As a developer, the method that you can use to check if the notification was never sent is exactly what we did in the exercises: go to rabbitmq and check the queue.
 
 ---
 

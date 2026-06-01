@@ -66,10 +66,15 @@ After wiring it up, verify the full flow:
 ```bash
 curl -X POST http://localhost:8000/v1/activities \
   -H "Content-Type: application/json" \
-  -d '{"user_id": "YOUR_USER_ID", "game_id": "YOUR_GAME_ID", "action": "started"}'
+  -d '{"user_id": "df89433f-248c-4800-a406-a3763c4009c4", "game_id": "471926c8-d72d-446d-9528-72e655562bbd", "action": "started"}'
 ```
 2. Open the RabbitMQ UI at http://localhost:15672 — go to the **Queues** tab and confirm messages appeared in `gamehub.notifications` and `gamehub.logs`
 3. Check the `notification-service` logs — a notification should appear
+
+Result:
+```
+[consumer] Notification stored for user df89433f-248c-4800-a406-a3763c4009c4: Someone just started The Witcher 3: Wild Hunt
+```
 
 ---
 
@@ -84,6 +89,11 @@ Verify:
 curl http://localhost:8000/v1/notifications
 ```
 
+Result:
+```
+[{"id":1,"user_id":"df89433f-248c-4800-a406-a3763c4009c4","message":"Someone just started The Witcher 3: Wild Hunt","received_at":"2026-06-01 11:16:37"}]
+```
+
 ---
 
 ## Discussion *(~15 min)*
@@ -96,6 +106,6 @@ curl http://localhost:8000/v1/notifications
 
 ## Minimum to submit this branch
 
-- [ ] Activity creation publishes a RabbitMQ message — visible in the management UI
-- [ ] `notification-service` registered in the gateway and reachable via port 8000
+- [X] Activity creation publishes a RabbitMQ message — visible in the management UI
+- [X] `notification-service` registered in the gateway and reachable via port 8000
 - [ ] `REFLECTION.md` completed and committed
