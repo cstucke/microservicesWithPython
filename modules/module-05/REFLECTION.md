@@ -18,7 +18,9 @@ The game-service now has two models for the same data: SQLite for writes, Redis 
 
 Think about what kind of queries each model is optimised for, and what would happen if you tried to use the write model for high-traffic read operations.
 
-> *Your answer:*
+```text
+> Among several reasons, we chose to maintain two representations of the same data (in both SQLite and Redis) for the purpose of speeding up transactions. If everything is to go through one representation of the data (one database, that is to say), a large number of reads  and writes at the same time, the transactions would become very slow and cause too much latency for the optimal operations of our server. Ultimately, we still have one source of truth: SQLite, and this is how we can maintain data integrity.
+```
 
 ---
 
@@ -30,7 +32,9 @@ The logging-service checks GDPR consent before recording any activity. If a user
 
 From a system design perspective: where is the right place to enforce this rule — in the logging-service, in the activity-service, or at the gateway? Why?
 
-> *Your answer:*
+```text
+> This consent check means that data will not always be of the same structure: some data will have all of the fields, while other will be 'incomplete'. This adds another layer of complexity to the structure of the application. The gateway and activity services are not the correct place to enforce this rule, they already have distinct purposes that are not directly related to relating logs to an individual. On the other hand, the logging-service is responsible for maintaining (i feel like there are too many i's in that word) the logs and owns the consent records.
+```
 
 ---
 
@@ -42,7 +46,9 @@ With CQRS, your write model and read model can drift out of sync — a game is u
 
 Is there a class of applications where eventual consistency is never acceptable? What are they?
 
-> *Your answer:*
+```text
+> From the user's POV, the consistency of the data matters whenever they want to view/use it. If the data isn't being actually accessed or used in some ulterior facet, it won't directly matter to the user. There are several applications where inconsistency isn't allowed, and those are primarily ones where finance is related: for instance, a stock ticker or banking application.
+```
 
 ---
 

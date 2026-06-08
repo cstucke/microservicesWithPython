@@ -106,11 +106,11 @@ Test the full flow in order:
 
 ## Minimum to submit this branch
 
-- [ ] `GET /v1/games/{id}/summary` returns data from Redis
-- [ ] All four consent endpoints working and reachable via the gateway
-- [ ] RabbitMQ consumer skips log entries when consent is not given
-- [ ] `logging-service` registered in the gateway under both `consent` and `logs`
-- [ ] `REFLECTION.md` completed and committed
+- [X] `GET /v1/games/{id}/summary` returns data from Redis
+- [X] All four consent endpoints working and reachable via the gateway
+- [X] RabbitMQ consumer skips log entries when consent is not given
+- [X] `logging-service` registered in the gateway under both `consent` and `logs`
+- [X] `REFLECTION.md` completed and committed
 
 ---
 
